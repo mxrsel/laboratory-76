@@ -1,35 +1,44 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useEffect, useState } from 'react';
+import {Message} from './types.ts';
+import Chat from './components/Chat/Chat.tsx';
+import MessageList from './components/MessageList/MessageList.tsx';
 
-function App() {
-  const [count, setCount] = useState(0)
+const App: React.FC = () => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [lastDatetime, setLastDatetime] = useState<string>('');
+
+  const fetchMessages = async () => {
+    let url = 'http://146.185.154.90:8000/messages';
+    if (lastDatetime) {
+      url += `?datetime=${lastDatetime}`;
+    }
+    const response = await fetch(url);
+    const data: Message[] = await response.json();
+    if (data.length > 0) {
+      setLastDatetime(data[data.length - 1].datetime);
+      setMessages((prevMessages) => [...prevMessages, ...data]);
+    }
+  };
+
+
+
+  useEffect(() => {
+    const interval = setInterval(fetchMessages, 3000);
+    return () => clearInterval(interval);
+  }, [lastDatetime]);
+
+  const handleMessageSent = async () => {
+    const interval = setInterval(fetchMessages, 3000);
+    clearInterval(interval);
+    await fetchMessages();
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <div>
+      <Chat onMessageSent={handleMessageSent} />
+      <MessageList messages={messages} />
+    </div>
+  );
+};
 
-export default App
+export default App;
